@@ -1,4 +1,8 @@
-﻿using System;
+﻿/* TextAnalyer.cs
+ * By: Max Shafer
+ */
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,10 +16,19 @@ using System.Text.RegularExpressions;
 namespace Ksu.Cis300.TextAnalysis
 {
 
+    /// <summary>
+    /// a class to analyze text files
+    /// </summary>
     public static class TextAnalyzer
     {
+        /// <summary>
+        /// a format string pattern for regex
+        /// </summary>
         const string _pattern = "[^a-z]+";
 
+        /// <summary>
+        /// initilizes regex feild
+        /// </summary>
         static Regex regex = new Regex(_pattern);
         
 
@@ -25,7 +38,7 @@ namespace Ksu.Cis300.TextAnalysis
         /// </summary>
         /// <param name="dict"></param>
         /// <returns></returns>
-        public static Dictionary<String, double> GetFrequencies(Dictionary<string, int>dict)
+        private static Dictionary<String, double> GetFrequencies(Dictionary<string, int>dict)
         {
 
            Dictionary<String, double> freqeuncies = new Dictionary<String, double>();
@@ -130,33 +143,26 @@ namespace Ksu.Cis300.TextAnalysis
         /// <param name="upperThreshold">the upperthreshold</param>
         /// <param name="wordsCompared">the total number of words used in the comparison</param>
         /// <returns>the diffrence between file 1 and file 2 with an out of the amount of words compared</returns>
-        public static double CompareDiffrences(Dictionary<string,double> file1, Dictionary<string, double> file2, double lowerThreshold, double upperThreshold, out int wordsCompared)
+        public static double CompareDiffrences(Dictionary<string,double> file1, Dictionary<string, double> file2, double lowerThreshold, out int totalWords)
         {
-            double value;
-            double frequency1;
-            double frequency2;
+            
 
-            double sumOfChange = 0;
-            wordsCompared = 0;
+            double sumOfChange;
+            int wordsCompared;
 
-            foreach(KeyValuePair<string,double> kvPair in file1)
-            {
-                if(file2.TryGetValue(kvPair.Key,out value))
-                {
-                    
-                    if(BetweenThreshold(file1, kvPair.Key, lowerThreshold, upperThreshold, out frequency1) && BetweenThreshold(file2, kvPair.Key, lowerThreshold, upperThreshold, out frequency2))
-                    {
-                        sumOfChange = ( frequency1 - frequency2) * (frequency1 - frequency2);
-                        wordsCompared++;
-                    }
-                }   
+            sumOfChange = CalculateSum(file1, file2, lowerThreshold, 1, out wordsCompared); //The sum that uses all words whose frequencies satisfy the threshold in the first file, regardless of their frequencies in the second file.
 
-            }
+            totalWords = wordsCompared;
+
+            sumOfChange += CalculateSum(file2, file1, lowerThreshold, 0, out wordsCompared); //The sum that uses all words whose frequencies satisfy the threshold in the second file but do not satisfy the threshold in the first file.
+
+            totalWords += wordsCompared;
+
             return Math.Sqrt(sumOfChange);
         }
 
         
-
+        
 
 
 
@@ -201,40 +207,42 @@ namespace Ksu.Cis300.TextAnalysis
         }
 
         /// <summary>
-        /// Takes a lot of stuff and echecks if a word falls between the thresholds
+        /// caluclates the sum of all the words in file 1 that meet the threshold and are in file 2 also counts the number of words in file 1 that pass the threshold.
         /// </summary>
-        /// <param name="TotalUses">total occuences of the checked word</param>
-        /// <param name="TotalWords">total words in the file</param>
-        /// <param name="LowerThreshold">the lower threshold</param>
-        /// <param name="upperThreshold">the upper threshold</param>
-        /// <param name="Frequency">an out variable that is set to the frequency of the word</param>
-        /// <returns>if the word falls inbetween the threshold</returns>
-        private static bool BetweenThreshold(Dictionary<string, double> frequencies, string key, double lowerThreshold, double upperThreshold, out double foundFrequency)
+        /// <param name="file1">the selected file</param>
+        /// <param name="file2">the shifting file</param>
+        /// <param name="lowerThreshold">lower</param>
+        /// <param name="upperThreshold">upper</param>
+        /// <param name="wordsUsed">the number of words between file 1 and in file 2 that pass threshold</param>
+        /// <returns>returns the sum</returns>
+        private static double CalculateSum(Dictionary<string, double> file1, Dictionary<string, double> file2, double lowerThreshold, double upperThreshold, out int wordsUsed)
         {
-            if (frequencies.TryGetValue(key, out double frequency))
+            double value;
+            double sum = 0;
+            wordsUsed = 0;
+
+
+            foreach (KeyValuePair<string, double> kvPair in file1)
             {
-                
-
-                if (lowerThreshold <= frequency && frequency <= upperThreshold)
+                if (file2.TryGetValue(kvPair.Key, out value))
                 {
-                    foundFrequency = frequency;
-                    return true;
 
+                    if (kvPair.Value >= lowerThreshold && kvPair.Value < upperThreshold)
+                    {
+                        sum += Math.Pow(value - kvPair.Value, 2);
+                        wordsUsed++;
+                    }
+                    if (value > upperThreshold && value >= lowerThreshold && kvPair.Value < lowerThreshold) //  >
+                    {
+                        sum += Math.Pow(value - kvPair.Value, 2);
+                        wordsUsed++;
+                    }
                 }
-                else
-                {
-                    foundFrequency = default;
-                    return false;
-                }
-            }
-            else
-            {
-                throw new IOException(); // maby change ex later
-            }
-                
-           
-
+            }  
+            return sum;
         }
-        
+
+
+
     }
 }

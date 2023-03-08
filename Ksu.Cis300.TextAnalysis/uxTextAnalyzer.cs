@@ -1,4 +1,8 @@
-﻿using System;
+﻿/* uxTextAnalyer.cs
+ * By: Max Shafer
+ */
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -14,37 +18,52 @@ using System.Xml.Linq;
 
 namespace Ksu.Cis300.TextAnalysis
 {
+    /// <summary>
+    /// a form for analying texts
+    /// </summary>
     public partial class uxTextAnalyzer : Form
     {
+        /// <summary>
+        /// a feld to keep track of the threshold counter
+        /// </summary>
         public uxThresholdDialog thresholdData = new uxThresholdDialog();
 
-
-
+        /// <summary>
+        /// a format string
+        /// </summary>
         private const string _formatString = "N5";
 
-        private const int _nameLoc = 0;
-        private const int _vocabLoc = 1;
-        private const int _wordsLoc = 2;
-        private const int _diffrenceLoc = 3;
-
+        /// <summary>
+        /// an array to store the files read in
+        /// </summary>
         private static FileInfo[] files;
 
+        /// <summary>
+        /// stores the freqency tables 
+        /// </summary>
         private static Dictionary<string, double>[] freqTables;
 
 
-
+        /// <summary>
+        /// initilizes the form and sets the text for threshold
+        /// </summary>
         public uxTextAnalyzer()
         {
             InitializeComponent();
-            uxThresholdText.Text = thresholdData.Threshold.ToString(_formatString);
+            uxThresholdText.Text = thresholdData.Threshold.ToString("N3");
         }
 
-        
+        /// <summary>
+        /// event handler for opening a folder
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void uxOpenFolder_Click(object sender, EventArgs e)
         {
+
             if(uxFolderBrowserDialog.ShowDialog() == DialogResult.OK)
             {
-                uxListView.Items.Clear();
+                
 
                 DirectoryInfo directory = new DirectoryInfo(uxFolderBrowserDialog.SelectedPath);
 
@@ -53,16 +72,24 @@ namespace Ksu.Cis300.TextAnalysis
 
                 if (CheckForFiles(files))
                 {
-                        freqTables = TextAnalyzer.BuildFrequencyTables(files);
-                        SetupListView(files, freqTables, 0);  
+                    uxListView.Items.Clear();
+                    freqTables = TextAnalyzer.BuildFrequencyTables(files);
+                    SetupListView(files, freqTables, 0);  
                 }
-
-
-                  
+                else
+                {
+                    Exception ex = new IOException("The selected folder contains no files");
+                    MessageBox.Show(ex.ToString());
+                }  
             }
             
         }
-
+        /// <summary>
+        /// sets up the list view
+        /// </summary>
+        /// <param name="files">the files</param>
+        /// <param name="freqTables">the freqencys corrisoponding</param>
+        /// <param name="selectedIndex"></param>
         private void SetupListView(FileInfo[] files, Dictionary<string, double>[] freqTables, int selectedIndex)
         {
             
@@ -70,10 +97,6 @@ namespace Ksu.Cis300.TextAnalysis
             {
                 string name = files[i].Name;
                 int vocab = freqTables[i].Count();
-                
-               
-              
-                
 
                 ListViewItem item = new ListViewItem(name);
                 item.SubItems.Add(vocab.ToString());
@@ -85,21 +108,22 @@ namespace Ksu.Cis300.TextAnalysis
             }
 
             uxListView.Items[0].Selected = true;
-
-           
-
-            
-            
         }
         
+        /// <summary>
+        /// updates the last two columns
+        /// </summary>
+        /// <param name="freqTables">requency table array</param>
+        /// <param name="selectedIndex">the current selected index</param>
         private void UpdateDiffrences(Dictionary<string, double>[] freqTables, int selectedIndex)
         {
             int i = 0;
+            
             foreach (ListViewItem item in uxListView.Items)
             {
                
                 int wordsCompared;
-                double diffrence = TextAnalyzer.CompareDiffrences(freqTables[selectedIndex], freqTables[i], Convert.ToDouble(uxThresholdText.Text), 1, out wordsCompared);
+                double diffrence = TextAnalyzer.CompareDiffrences(freqTables[selectedIndex], freqTables[i], Convert.ToDouble(uxThresholdText.Text), out wordsCompared);
 
                 item.SubItems[2].Text = diffrence.ToString(_formatString);
                 item.SubItems[3].Text = wordsCompared.ToString();
@@ -107,10 +131,15 @@ namespace Ksu.Cis300.TextAnalysis
                 
                 i++;
 
-                //
+                
             }
         }
 
+        /// <summary>
+        /// checks if there are files in a directory
+        /// </summary>
+        /// <param name="files"></param>
+        /// <returns></returns>
         private bool CheckForFiles(FileInfo[] files)
         {
             foreach(FileInfo file in files)
@@ -128,13 +157,11 @@ namespace Ksu.Cis300.TextAnalysis
         /// </summary>
         /// <param name="FileName">the path of the file</param>
         /// <returns>A bool if it has a txt file</returns>
-        
-
         public void uxThresholdButton_Click(object sender, EventArgs e)
         {
             if(thresholdData.ShowDialog() == DialogResult.OK)
             {
-                uxThresholdText.Text =  thresholdData.Threshold.ToString(_formatString);
+                uxThresholdText.Text =  thresholdData.Threshold.ToString("N3");
 
                 if(uxListView.SelectedIndices.Count > 0)
                 {
@@ -143,6 +170,11 @@ namespace Ksu.Cis300.TextAnalysis
             }
         }
 
+        /// <summary>
+        /// event handler when the index changes
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void uxListView_SelectedIndexChanged(object sender, EventArgs e)
         {
             ListView listView = (ListView)sender;
@@ -154,7 +186,11 @@ namespace Ksu.Cis300.TextAnalysis
             
             
         }
-
+        /// <summary>
+        /// ignore accedential double click
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void uxThresholdText_TextChanged(object sender, EventArgs e)
         {
             
